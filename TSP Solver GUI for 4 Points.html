@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html>
+<head>
+            <style>body {
+    font-family: sans-serif;
+    line-height: 1.6;
+    padding: 20px;
+}
+
+h1, h2 {
+    text-align: center;
+    margin-bottom: 15px;
+}
+
+.container {
+    display: flex;
+    flex-wrap: wrap; /* Allow wrapping on smaller screens */
+    gap: 30px; /* Space between input and results */
+    justify-content: center;
+}
+
+.input-section, .results-section {
+    border: 1px solid #ccc;
+    padding: 20px;
+    border-radius: 8px;
+    background-color: #f9f9f9;
+    min-width: 300px; /* Prevent getting too squished */
+}
+
+.input-section h2, .results-section h2 {
+    margin-top: 0;
+}
+
+.point-input {
+    margin-bottom: 10px;
+    display: grid;
+    grid-template-columns: auto 1fr; /* Label and input */
+    align-items: center;
+    gap: 5px 10px; /* Row and column gap */
+}
+
+.point-input label {
+    grid-column: 1 / 2;
+    text-align: right;
+}
+.point-input input {
+    grid-column: 2 / 3;
+    padding: 5px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    width: 80px; /* Fixed width for number inputs */
+}
+
+button {
+    display: block;
+    width: 100%;
+    padding: 10px;
+    margin-top: 15px;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 1em;
+}
+
+button:hover {
+    background-color: #0056b3;
+}
+
+#result-path, #result-distance {
+    margin-bottom: 10px;
+    font-weight: bold;
+}
+
+#tsp-canvas {
+    border: 1px solid #aaa;
+    display: block; /* Remove extra space below canvas */
+    margin: 15px auto 0; /* Center the canvas horizontally */
+    background-color: white;
+}
+
+.error {
+    color: red;
+    font-weight: bold;
+    margin-bottom: 10px;
+}</style>
+        </head>
+        <body>
+            
+
+
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TSP Solver (4 Points)</title>
+    <link rel="stylesheet" href="style.css">
+
+
+
+    <h1>TSP Solver (4 Points)</h1>
+    <p>Finds the shortest path starting at A(0,0), visiting B, C, D exactly once, and returning to A.</p>
+
+    <div class="container">
+        <div class="input-section">
+            <h2>Input Coordinates</h2>
+            <p>Point A is fixed at (0, 0).</p>
+            <div class="point-input">
+                <label for="bx">Point B X:</label>
+                <input type="number" id="bx" value="1">
+                <label for="by">Point B Y:</label>
+                <input type="number" id="by" value="5">
+            </div>
+            <div class="point-input">
+                <label for="cx">Point C X:</label>
+                <input type="number" id="cx" value="8">
+                <label for="cy">Point C Y:</label>
+                <input type="number" id="cy" value="2">
+            </div>
+            <div class="point-input">
+                <label for="dx">Point D X:</label>
+                <input type="number" id="dx" value="6">
+                <label for="dy">Point D Y:</label>
+                <input type="number" id="dy" value="7">
+            </div>
+            <button id="solve-button">Solve TSP</button>
+        </div>
+
+        <div class="results-section">
+            <h2>Results</h2>
+            <div id="error-message" class="error"></div>
+            <div id="result-path">Optimal Path: A -&gt; B -&gt; C -&gt; D -&gt; A</div>
+            <div id="result-distance">Total Distance: 22.4410</div>
+            <canvas id="tsp-canvas" width="450" height="400"></canvas>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+
+
+            <script>// --- DOM Elements ---
+const bxInput = document.getElementById('bx');
+const byInput = document.getElementById('by');
+const cxInput = document.getElementById('cx');
+const cyInput = document.getElementById('cy');
+const dxInput = document.getElementById('dx');
+const dyInput = document.getElementById('dy');
+const solveButton = document.getElementById('solve-button');
+const resultPathDiv = document.getElementById('result-path');
+const resultDistanceDiv = document.getElementById('result-distance');
+const errorMessageDiv = document.getElementById('error-message');
+const canvas = document.getElementById('tsp-canvas');
+const ctx = canvas.getContext('2d');
+
+// --- TSP Calculation Logic ---
+
+function calculateDistance(p1, p2) {
+    return Math.sqrt((p1.x - p2.x) ** 2 + (p1.y - p2.y) ** 2);
+}
+
+// Helper function for permutations (Heap's algorithm variation)
+function getPermutations(arr) {
+    const permutations = [];
+    const n = arr.length;
+
+    function backtrack(index, currentPerm) {
+        if (index === n) {
+            permutations.push([...currentPerm]); // Add a copy
+            return;
+        }
+        for (let i = index; i < n; i++) {
+            // Swap
+            [currentPerm[index], currentPerm[i]] = [currentPerm[i], currentPerm[index]];
+            // Recurse
+            backtrack(index + 1, currentPerm);
+            // Backtrack (swap back)
+            [currentPerm[index], currentPerm[i]] = [currentPerm[i], currentPerm[index]];
+        }
+    }
+
+    backtrack(0, [...arr]); // Start with a copy of the array
+    return permutations;
+}
+
+
+function solveTSP(points) {
+    const startNode = 'A';
+    const otherNodes = Object.keys(points).filter(key => key !== startNode); // ['B', 'C', 'D']
+
+    if (otherNodes.length !== 3) {
+        console.error("Requires exactly 3 points besides A");
+        return { path: null, distance: Infinity };
+    }
+
+    let minDistance = Infinity;
+    let bestPath = null;
+
+    const permutations = getPermutations(otherNodes); // Get permutations of ['B', 'C', 'D']
+
+    permutations.forEach(perm => {
+        let currentDistance = 0;
+        let currentNode = startNode;
+
+        // Path: A -> perm[0] -> perm[1] -> perm[2] -> A
+        // A to first node in permutation
+        currentDistance += calculateDistance(points[currentNode], points[perm[0]]);
+        currentNode = perm[0];
+
+        // Between nodes in permutation
+        currentDistance += calculateDistance(points[currentNode], points[perm[1]]);
+        currentNode = perm[1];
+
+        currentDistance += calculateDistance(points[currentNode], points[perm[2]]);
+        currentNode = perm[2];
+
+        // Last node back to A
+        currentDistance += calculateDistance(points[currentNode], points[startNode]);
+
+        // Check if this path is shorter
+        if (currentDistance < minDistance) {
+            minDistance = currentDistance;
+            bestPath = [startNode, ...perm, startNode]; // Store the full path
+        }
+    });
+
+    return { path: bestPath, distance: minDistance };
+}
+
+// --- Drawing Logic ---
+
+function drawPlot(points, path) {
+    const padding = 40; // Padding around the edges of the canvas
+    const pointRadius = 5;
+    const labelOffset = 8;
+
+    ctx.clearRect(0, 0, canvas.width, canvas.height); // Clear previous drawing
+    ctx.font = '12px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+
+    // --- Calculate bounds and scaling ---
+    let minX = 0, maxX = 0, minY = 0, maxY = 0;
+    Object.values(points).forEach(p => {
+        minX = Math.min(minX, p.x);
+        maxX = Math.max(maxX, p.x);
+        minY = Math.min(minY, p.y);
+        maxY = Math.max(maxY, p.y);
+    });
+
+    // Handle cases where all points are on a line or at the same place
+    const rangeX = (maxX - minX) || 1; // Avoid division by zero
+    const rangeY = (maxY - minY) || 1;
+
+    const plotWidth = canvas.width - 2 * padding;
+    const plotHeight = canvas.height - 2 * padding;
+
+    // Determine scale to fit data within plot area
+    const scaleX = plotWidth / rangeX;
+    const scaleY = plotHeight / rangeY;
+    const scale = Math.min(scaleX, scaleY) * 0.9; // Use slightly smaller scale for better margins
+
+    // Calculate origin offset (where 0,0 should be on the canvas)
+    // Center the plot based on the range
+    const originX = padding + (plotWidth - (maxX - minX) * scale) / 2 - minX * scale;
+    const originY = canvas.height - padding - (plotHeight - (maxY - minY) * scale) / 2 + minY * scale; // Y is inverted
+
+    // Helper function to transform data coordinates to canvas coordinates
+    function transformCoords(x, y) {
+        return {
+            cx: originX + x * scale,
+            cy: originY - y * scale // Y is inverted in canvas
+        };
+    }
+
+    // --- Draw Axes (optional) ---
+    ctx.strokeStyle = '#ccc';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    // X-axis (y=0 line)
+    let zeroY = transformCoords(0, 0).cy;
+    ctx.moveTo(0, zeroY);
+    ctx.lineTo(canvas.width, zeroY);
+    // Y-axis (x=0 line)
+    let zeroX = transformCoords(0, 0).cx;
+    ctx.moveTo(zeroX, 0);
+    ctx.lineTo(zeroX, canvas.height);
+    ctx.stroke();
+
+
+    // --- Draw Path ---
+    if (path && path.length > 0) {
+        ctx.strokeStyle = '#007bff'; // Blue for path
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        let firstPointCoords = transformCoords(points[path[0]].x, points[path[0]].y);
+        ctx.moveTo(firstPointCoords.cx, firstPointCoords.cy);
+
+        for (let i = 1; i < path.length; i++) {
+            let pointCoords = transformCoords(points[path[i]].x, points[path[i]].y);
+            ctx.lineTo(pointCoords.cx, pointCoords.cy);
+        }
+        ctx.stroke();
+    }
+
+    // --- Draw Points and Labels ---
+    ctx.fillStyle = '#dc3545'; // Red for points
+    ctx.strokeStyle = '#000'; // Black outline for labels
+    ctx.lineWidth = 0.5;
+
+    Object.entries(points).forEach(([name, point]) => {
+        const { cx, cy } = transformCoords(point.x, point.y);
+
+        // Draw point
+        ctx.beginPath();
+        ctx.arc(cx, cy, pointRadius, 0, 2 * Math.PI);
+        ctx.fill();
+
+        // Draw label
+        ctx.fillStyle = '#000'; // Black text
+        // Position label slightly away from the point
+        ctx.fillText(name, cx, cy - pointRadius - labelOffset);
+        ctx.fillStyle = '#dc3545'; // Switch back for next point fill
+    });
+}
+
+// --- Event Handling ---
+function handleSolve() {
+    errorMessageDiv.textContent = ''; // Clear previous errors
+    const points = { A: { x: 0, y: 0 } }; // Fixed point A
+
+    try {
+        // Validate and get point coordinates
+        const coords = ['b', 'c', 'd'];
+        for (const p of coords) {
+            const xInput = document.getElementById(`${p}x`);
+            const yInput = document.getElementById(`${p}y`);
+            const x = parseFloat(xInput.value);
+            const y = parseFloat(yInput.value);
+
+            if (isNaN(x) || isNaN(y)) {
+                throw new Error(`Invalid numeric input for Point ${p.toUpperCase()}.`);
+            }
+            points[p.toUpperCase()] = { x, y }; // Add B, C, D
+        }
+
+        // Solve TSP
+        const result = solveTSP(points);
+
+        // Display results
+        if (result.path) {
+            resultPathDiv.textContent = `Optimal Path: ${result.path.join(' -> ')}`;
+            resultDistanceDiv.textContent = `Total Distance: ${result.distance.toFixed(4)}`;
+            drawPlot(points, result.path);
+        } else {
+            throw new Error("Failed to calculate TSP path.");
+        }
+
+    } catch (error) {
+        errorMessageDiv.textContent = `Error: ${error.message}`;
+        resultPathDiv.textContent = "Path: Error";
+        resultDistanceDiv.textContent = "Distance: N/A";
+        // Optionally clear the canvas on error
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+    }
+}
+
+
+// --- Initial Setup ---
+solveButton.addEventListener('click', handleSolve);
+
+// Perform an initial solve and draw on page load with default values
+handleSolve();</script>
+        
+    
+</body>
