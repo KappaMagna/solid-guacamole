@@ -1,14 +1,15 @@
 rules_version = '2';
 
 // Regole di sicurezza per Firestore.
-// Sostituisci le due email con le vostre (tutto in minuscolo) e
+// Sostituisci l'email con quella dell'account (tutto in minuscolo) e
 // incolla questo testo in: Firebase → Firestore Database → Regole → Pubblica.
 service cloud.firestore {
   match /databases/{database}/documents {
 
     function famiglia() {
       return request.auth != null
-        && request.auth.token.email in ['TUA.EMAIL@gmail.com', 'EMAIL.COMPAGNO@gmail.com'];
+        // Per più account: ['email1@gmail.com', 'email2@gmail.com']
+        && request.auth.token.email in ['TUA.EMAIL@gmail.com'];
     }
 
     function spesaValida() {

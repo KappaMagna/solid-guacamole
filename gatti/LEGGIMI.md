@@ -4,7 +4,7 @@ Una piccola app per segnare quanto spendete per Pimpinella e Oberon (crocchette,
 
 - **Dove si apre:** https://kappamagna.github.io/solid-guacamole/gatti/
 - **Costo:** zero. GitHub Pages è gratis e Firebase è sul piano *Spark* gratuito, senza carta di credito.
-- **Condivisione:** tu e il tuo compagno entrate con la vostra email e vedete gli stessi dati in tempo reale.
+- **Condivisione:** tu e il tuo compagno entrate con lo stesso account e vedete gli stessi dati in tempo reale. Ogni spesa mostra chi l'ha inserita.
 
 Finché non completi i passaggi qui sotto, l'app funziona in **modalità prova**: salva i dati solo sul telefono che stai usando. Dall'ingranaggio ⚙️ puoi caricare dei dati di esempio per vedere come funziona.
 
@@ -23,20 +23,18 @@ Conviene farla da computer.
 ### 2. Attiva l'accesso con email e password
 1. Nel menu a sinistra: **Build → Authentication → Inizia**.
 2. Nella scheda **Metodo di accesso** scegli **Email/password**, attivalo e salva.
-3. Nella scheda **Utenti** clicca **Aggiungi utente** due volte:
-   - la tua email e una password (almeno 6 caratteri);
-   - l'email del tuo compagno e una sua password, che potrà cambiare in seguito.
+3. Nella scheda **Utenti** clicca **Aggiungi utente** e crea l'account con la tua email e una password (almeno 6 caratteri).
 
-Solo questi due account potranno entrare.
+Basta **un solo account**, che usate in due: Enrico entra con la stessa email e password. Al primo accesso ognuno sceglie il proprio nome sul suo telefono, e così ogni spesa mostra chi l'ha inserita. Se un giorno preferite account separati, aggiungete un secondo utente e la sua email nelle regole.
 
 ### 3. Crea il database
 1. **Build → Firestore Database → Crea database**.
 2. Posizione: scegli una località europea, per esempio `eur3 (Europe)`.
 3. Scegli **Avvia in modalità di produzione**.
 4. Apri la scheda **Regole**, cancella tutto e incolla il contenuto del file [`firestore.rules`](firestore.rules).
-5. **Importante:** nelle regole sostituisci `TUA.EMAIL@gmail.com` e `EMAIL.COMPAGNO@gmail.com` con le vostre due email, scritte **in minuscolo**. Poi clicca **Pubblica**.
+5. **Importante:** nelle regole sostituisci `TUA.EMAIL@gmail.com` con l'email dell'account, scritta **in minuscolo**. Poi clicca **Pubblica**.
 
-Le regole fanno in modo che solo voi due possiate leggere e scrivere le spese.
+Le regole fanno in modo che solo quell'account possa leggere e scrivere le spese.
 
 ### 4. Collega l'app a Firebase
 1. Clicca l'ingranaggio accanto a "Panoramica del progetto" e poi **Impostazioni progetto**.
@@ -53,13 +51,13 @@ Le regole fanno in modo che solo voi due possiate leggere e scrivere le spese.
      appId: "..."
    };
    ```
-5. Nello stesso file, in `nomi`, ci sono i nomi tra cui scegliere al primo accesso (adesso `"Kerstin"` ed `"Enrico"`). Ogni spesa mostra il nome di chi l'ha inserita.
+5. Nello stesso file, in `nomi`, ci sono i nomi tra cui scegliere al primo accesso (adesso `"Kerstin"` ed `"Enrico"`). Ognuno lo sceglie una volta sul proprio telefono e può cambiarlo da ⚙️ → **Cambia nome**.
 6. Salva il file su GitHub. Dopo un paio di minuti GitHub Pages pubblica la nuova versione.
 
 > Le chiavi in `firebaseConfig` non sono segrete: servono solo a dire all'app quale progetto usare. A proteggere i dati sono le **regole del punto 3**, quindi non saltare quel passaggio.
 
 ### 5. Installala sul telefono
-Aprite il link dell'app sul telefono ed entrate con la vostra email e password.
+Aprite il link dell'app sul telefono, entrate con email e password dell'account e toccate il vostro nome. L'accesso resta memorizzato: non serve rifarlo ogni volta.
 - **iPhone (Safari):** tasto Condividi → **Aggiungi alla schermata Home**.
 - **Android (Chrome):** menu ⋮ → **Installa app** (oppure *Aggiungi a schermata Home*).
 

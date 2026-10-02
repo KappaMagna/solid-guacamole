@@ -102,10 +102,9 @@ async function archivioFirebase() {
     // Con la cache offline la promessa si risolve solo quando il server conferma:
     // non la aspettiamo, così l'app resta veloce anche senza rete.
     aggiungi(v) {
-      return F.addDoc(col, { ...v, autore: arch.utente.email, autoreNome: arch.utente.displayName || "", creato: F.serverTimestamp() });
+      return F.addDoc(col, { ...v, autore: arch.utente.email, autoreNome: nomeQui(), creato: F.serverTimestamp() });
     },
     modifica(id, v) { return F.updateDoc(F.doc(db, "spese", id), { ...v, modificatoDa: arch.utente.email, modificato: F.serverTimestamp() }); },
-    async impostaNome(nome) { await A.updateProfile(arch.utente, { displayName: nome }); },
     elimina(id) { return F.deleteDoc(F.doc(db, "spese", id)); },
     entra(email, pw) { return A.signInWithEmailAndPassword(auth, email, pw); },
     esci() { return A.signOut(auth); },
@@ -113,6 +112,11 @@ async function archivioFirebase() {
   };
   return arch;
 }
+
+// Il nome di chi usa questo telefono: l'account può essere condiviso,
+// quindi la scelta Kerstin/Enrico resta salvata sul singolo dispositivo.
+const CHIAVE_NOME = "pimpi-nome";
+const nomeQui = () => memoria.get(CHIAVE_NOME, "");
 
 const nomeAutore = (s) => {
   if (s.autoreNome) return s.autoreNome;
@@ -676,23 +680,27 @@ $("#form-accesso").addEventListener("submit", async (e) => {
 });
 
 function chiediNome() {
+  $("#barra").hidden = true;
   mostraSoloVista("chi");
   $("#scelta-nome").innerHTML = nomi.map((n) => `<button class="btn btn-grande" type="button" data-nome="${esc(n)}">${esc(n)}</button>`).join("");
 }
-$("#scelta-nome").addEventListener("click", async (e) => {
+$("#scelta-nome").addEventListener("click", (e) => {
   const b = e.target.closest("[data-nome]");
   if (!b) return;
-  $$("#scelta-nome button").forEach((x) => { x.disabled = true; });
-  try {
-    await archivio.impostaNome(b.dataset.nome);
-    $("#imp-utente").textContent = `Collegato come ${b.dataset.nome}`;
-    toast(`Ciao ${b.dataset.nome}! 🐾`);
-    entraNellApp();
-  } catch (x) {
-    toast("Errore: " + messaggioErrore(x), true);
-    $$("#scelta-nome button").forEach((x) => { x.disabled = false; });
-  }
+  memoria.set(CHIAVE_NOME, b.dataset.nome);
+  mostraUtente();
+  toast(`Ciao ${b.dataset.nome}! 🐾`);
+  entraNellApp();
 });
+$("#btn-cambia-nome").addEventListener("click", () => {
+  $("#dlg-impostazioni").close();
+  chiediNome();
+});
+
+function mostraUtente() {
+  const u = archivio?.utente;
+  $("#imp-utente").textContent = u ? `Su questo telefono sei ${nomeQui() || "…"} · account ${u.email}` : "";
+}
 
 function mostraSoloVista(id) {
   ["accesso", "chi", "caricamento", "riepilogo", "aggiungi", "lista"].forEach((v) => { $(`#vista-${v}`).hidden = v !== id; });
@@ -731,8 +739,9 @@ async function avvia() {
   archivio.onUtente((u) => {
     if (u) {
       $("#btn-esci").hidden = false;
-      if (!u.displayName && nomi.length) { chiediNome(); return; }
-      $("#imp-utente").textContent = `Collegato come ${u.displayName || u.email}`;
+      $("#btn-cambia-nome").hidden = !nomi.length;
+      mostraUtente();
+      if (!nomeQui() && nomi.length) { chiediNome(); return; }
       entraNellApp();
     } else {
       smetti?.(); smetti = null;

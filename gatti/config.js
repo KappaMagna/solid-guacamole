@@ -25,6 +25,7 @@ export const firebaseConfig = {
   appId: "1:697895571788:web:57a45e409c28afa98f7fe9",
 };
 
-// 2) I nomi di chi usa l'app. Al primo accesso ognuno sceglie il proprio,
-//    e accanto a ogni spesa compare il nome di chi l'ha inserita.
+// 2) I nomi di chi usa l'app. Al primo accesso ognuno sceglie il proprio
+//    sul suo telefono (si può cambiare da ⚙️), e accanto a ogni spesa
+//    compare il nome di chi l'ha inserita. L'account può essere uno solo.
 export const nomi = ["Kerstin", "Enrico"];
