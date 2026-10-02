@@ -25,9 +25,6 @@ export const firebaseConfig = {
   appId: "1:697895571788:web:57a45e409c28afa98f7fe9",
 };
 
-// 2) (Facoltativo) Il nome da mostrare accanto a ogni spesa,
-//    al posto dell'indirizzo email di chi l'ha inserita.
-export const nomi = {
-  // "tua.email@gmail.com": "Io",
-  // "email.compagno@gmail.com": "Tesoro",
-};
+// 2) I nomi di chi usa l'app. Al primo accesso ognuno sceglie il proprio,
+//    e accanto a ogni spesa compare il nome di chi l'ha inserita.
+export const nomi = ["Kerstin", "Enrico"];

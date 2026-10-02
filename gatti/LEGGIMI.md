@@ -53,7 +53,7 @@ Le regole fanno in modo che solo voi due possiate leggere e scrivere le spese.
      appId: "..."
    };
    ```
-5. Facoltativo: nello stesso file, in `nomi`, scrivi i nomi da mostrare al posto delle email, per esempio `"tua.email@gmail.com": "Io"`.
+5. Nello stesso file, in `nomi`, ci sono i nomi tra cui scegliere al primo accesso (adesso `"Kerstin"` ed `"Enrico"`). Ogni spesa mostra il nome di chi l'ha inserita.
 6. Salva il file su GitHub. Dopo un paio di minuti GitHub Pages pubblica la nuova versione.
 
 > Le chiavi in `firebaseConfig` non sono segrete: servono solo a dire all'app quale progetto usare. A proteggere i dati sono le **regole del punto 3**, quindi non saltare quel passaggio.

@@ -101,8 +101,11 @@ async function archivioFirebase() {
     },
     // Con la cache offline la promessa si risolve solo quando il server conferma:
     // non la aspettiamo, così l'app resta veloce anche senza rete.
-    aggiungi(v) { return F.addDoc(col, { ...v, autore: arch.utente.email, creato: F.serverTimestamp() }); },
+    aggiungi(v) {
+      return F.addDoc(col, { ...v, autore: arch.utente.email, autoreNome: arch.utente.displayName || "", creato: F.serverTimestamp() });
+    },
     modifica(id, v) { return F.updateDoc(F.doc(db, "spese", id), { ...v, modificatoDa: arch.utente.email, modificato: F.serverTimestamp() }); },
+    async impostaNome(nome) { await A.updateProfile(arch.utente, { displayName: nome }); },
     elimina(id) { return F.deleteDoc(F.doc(db, "spese", id)); },
     entra(email, pw) { return A.signInWithEmailAndPassword(auth, email, pw); },
     esci() { return A.signOut(auth); },
@@ -111,9 +114,10 @@ async function archivioFirebase() {
   return arch;
 }
 
-const nomeAutore = (email) => {
-  if (!email || email === "tu") return "";
-  return nomi[email] || nomi[String(email).toLowerCase()] || String(email).split("@")[0];
+const nomeAutore = (s) => {
+  if (s.autoreNome) return s.autoreNome;
+  if (!s.autore || s.autore === "tu") return "";
+  return String(s.autore).split("@")[0];
 };
 
 // ─── Stato ────────────────────────────────────────────────────
@@ -417,7 +421,7 @@ function disegnaLista() {
     return `<div class="mese-lista"><span>${MESI_LUNGHI[m - 1]} ${y}</span><span>${esc(fmt(somma(voci)))}</span></div>` +
       voci.map((s) => {
         const c = cat(s.categoria);
-        const chi = nomeAutore(s.autore);
+        const chi = nomeAutore(s);
         const sub = [dataCorta(s.data), s.quantita, chi && `da ${chi}`].filter(Boolean).map(esc).join(" · ");
         return `<div class="voce" role="button" tabindex="0" data-id="${esc(s.id)}">
           <span class="pallino" style="background:${c.colore}">${c.em}</span>
@@ -453,7 +457,7 @@ function ricompra(id) {
 $("#btn-csv").addEventListener("click", () => {
   const lista = speseLista();
   const righe = [["Data", "Categoria", "Descrizione", "Quantità", "Importo", "Inserita da"]]
-    .concat(lista.map((s) => [s.data, cat(s.categoria).nome, s.descrizione || "", s.quantita || "", String(s.importo).replace(".", ","), nomeAutore(s.autore)]));
+    .concat(lista.map((s) => [s.data, cat(s.categoria).nome, s.descrizione || "", s.quantita || "", String(s.importo).replace(".", ","), nomeAutore(s)]));
   const csv = "﻿" + righe.map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(";")).join("\r\n");
   const url = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
   const a = Object.assign(document.createElement("a"), { href: url, download: `spese-gatti-${oggi()}.csv` });
@@ -671,8 +675,27 @@ $("#form-accesso").addEventListener("submit", async (e) => {
   }
 });
 
+function chiediNome() {
+  mostraSoloVista("chi");
+  $("#scelta-nome").innerHTML = nomi.map((n) => `<button class="btn btn-grande" type="button" data-nome="${esc(n)}">${esc(n)}</button>`).join("");
+}
+$("#scelta-nome").addEventListener("click", async (e) => {
+  const b = e.target.closest("[data-nome]");
+  if (!b) return;
+  $$("#scelta-nome button").forEach((x) => { x.disabled = true; });
+  try {
+    await archivio.impostaNome(b.dataset.nome);
+    $("#imp-utente").textContent = `Collegato come ${b.dataset.nome}`;
+    toast(`Ciao ${b.dataset.nome}! 🐾`);
+    entraNellApp();
+  } catch (x) {
+    toast("Errore: " + messaggioErrore(x), true);
+    $$("#scelta-nome button").forEach((x) => { x.disabled = false; });
+  }
+});
+
 function mostraSoloVista(id) {
-  ["accesso", "caricamento", "riepilogo", "aggiungi", "lista"].forEach((v) => { $(`#vista-${v}`).hidden = v !== id; });
+  ["accesso", "chi", "caricamento", "riepilogo", "aggiungi", "lista"].forEach((v) => { $(`#vista-${v}`).hidden = v !== id; });
 }
 
 function entraNellApp() {
@@ -707,8 +730,9 @@ async function avvia() {
   }
   archivio.onUtente((u) => {
     if (u) {
-      $("#imp-utente").textContent = `Collegato come ${u.email}`;
       $("#btn-esci").hidden = false;
+      if (!u.displayName && nomi.length) { chiediNome(); return; }
+      $("#imp-utente").textContent = `Collegato come ${u.displayName || u.email}`;
       entraNellApp();
     } else {
       smetti?.(); smetti = null;
