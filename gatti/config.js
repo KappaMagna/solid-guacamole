@@ -16,7 +16,14 @@
 //   messagingSenderId: "1234567890",
 //   appId: "1:1234567890:web:abcdef"
 // };
-export const firebaseConfig = null;
+export const firebaseConfig = {
+  apiKey: "AIzaSyDVJRFSy6PJ44zy_ICMXtqUQBwBIVGCZLo",
+  authDomain: "pimpi-obi.firebaseapp.com",
+  projectId: "pimpi-obi",
+  storageBucket: "pimpi-obi.firebasestorage.app",
+  messagingSenderId: "697895571788",
+  appId: "1:697895571788:web:57a45e409c28afa98f7fe9",
+};
 
 // 2) (Facoltativo) Il nome da mostrare accanto a ogni spesa,
 //    al posto dell'indirizzo email di chi l'ha inserita.
