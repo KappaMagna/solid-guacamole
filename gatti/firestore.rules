@@ -1,0 +1,33 @@
+rules_version = '2';
+
+// Regole di sicurezza per Firestore.
+// Sostituisci le due email con le vostre (tutto in minuscolo) e
+// incolla questo testo in: Firebase → Firestore Database → Regole → Pubblica.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function famiglia() {
+      return request.auth != null
+        && request.auth.token.email in ['TUA.EMAIL@gmail.com', 'EMAIL.COMPAGNO@gmail.com'];
+    }
+
+    function spesaValida() {
+      let d = request.resource.data;
+      return d.importo is number && d.importo > 0 && d.importo < 10000
+        && d.data is string && d.data.size() == 10
+        && d.categoria in ['secco', 'umido', 'snack', 'lettiera', 'salute', 'giochi', 'altro']
+        && (!('descrizione' in d) || (d.descrizione is string && d.descrizione.size() <= 80))
+        && (!('quantita' in d) || (d.quantita is string && d.quantita.size() <= 30));
+    }
+
+    match /spese/{id} {
+      allow read, delete: if famiglia();
+      allow create, update: if famiglia() && spesaValida();
+    }
+
+    // Tutto il resto è chiuso.
+    match /{documento=**} {
+      allow read, write: if false;
+    }
+  }
+}
